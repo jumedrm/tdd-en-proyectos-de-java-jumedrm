@@ -1,0 +1,36 @@
+name: ejecutar tests y actualizar early
+
+on:
+  push:
+    branches:
+      - main  # se activa con cada commit en main
+
+permissions:
+  contents: write # permiso para que el robot pueda escribir en la rama early
+
+jobs:
+  test-and-promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: descargar código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # descarga todo el historial para poder hacer el merge
+
+      - name: configurar java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: ejecutar tests con maven
+        run: mvn test # comando estándar para ejecutar junit en entornos ci
+
+      - name: actualizar rama early
+        if: success() # solo se ejecuta si el paso anterior (los tests) ha ido bien
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout early
+          git merge main --ff-only # actualiza early con el contenido de main
+          git push origin early
